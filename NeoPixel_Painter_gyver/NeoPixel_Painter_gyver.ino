@@ -1,18 +1,18 @@
 /*
    РАСШИФРОВКА НАДПИСЕЙ НА ДИСПЛЕЕ:
-   Strt - (Start) начало работы, инициализация SD карты. Эту надпись можно успеть 
+   Strt - (Start) начало работы, инициализация SD карты. Эту надпись можно успеть
    прочитать только при запуске в режиме загрузки
-   PreP - (Perparing) подготовка к преобразованию изображений   
+   PreP - (Perparing) подготовка к преобразованию изображений
    LOAd - (Loading) преобразование и загрузка изображений
    read - (Reading) чтение преобразованных изображений с карты
-   rdy  - (Ready) готов к работе   
+   rdy  - (Ready) готов к работе
    Proc - (Processing) показываем анимацию
-   
+
    НАСТРОЙКИ:
    Br** - (Brightness) настройка яркости (в процентах, 10-95)
    Fr** - (Frame) номер изображения, которое будет показано при нажатии на кнопку
    SP** - (Speed) скорость анимации (в процентах, 0-95)
-   
+
    ОШИБКИ:
    Sder - (SD error) ошибка подключения SD карты (карта не подключена, карта сломана, карта не подходит)
    FrEr - (Frame Error) ошибка при чтении картинки. Возникает на разных стадиях, подробнее видно с компьютера
@@ -21,6 +21,7 @@
 
 // ------------------------------ НАСТРОЙКИ ------------------------------
 #define N_LEDS       144    // количество светодиодов (максимум 170 !!!)
+#define FLIP_H 0            // зеркально отражать изображения по горизонтали
 #define CURRENT_MAX 3500    // максимальный ток (авто-ограничение по расчёту яркости)
 #define DEBUG 0             // отправка информации в порт, 1-вкл, 0-выкл
 // ПРИ ВЫКЛЮЧЕННОМ DEBUG СИСТЕМА РАБОТАЕТ ГОРАЗДО БЫСТРЕЕ!!
@@ -29,8 +30,8 @@
 // ----------------------- ПОДКЛЮЧЕНИЕ -----------------------
 #define TRIGGER 2  // кнопка запуска анимации
 
-#define CLK_ENC 4  // ПИН CLK ЭНКОДЕРА
-#define DT_ENC 3   // ПИН DT ЭНКОДЕРА
+#define CLK_ENC 3  // ПИН CLK ЭНКОДЕРА
+#define DT_ENC 4   // ПИН DT ЭНКОДЕРА
 // CLK и DT можно менять местами, чтобы инвертировать направление
 
 #define SW_ENC 5   // ПИН SW ЭНКОДЕРА
@@ -250,7 +251,7 @@ void encoderTick() {
     } else {                          // если совпадают, значит против часовой
       if (SWstate) norm_counter -= NORM_STEP;
       else hold_counter -= HOLD_STEP;
-    }    
+    }
     turn_flag = true;                    // флаг что был поворот ручки энкодера
   }
   DT_last = DT_now;                   // обновить значение
@@ -347,7 +348,7 @@ boolean bmpProcess(
   SdFile    inFile,              // Windows BMP file for input
             outFile;             // NeoPixel temp file for output
   boolean   ok        = false,   // 'true' on valid BMP & output file
-            flip      = false;   // 'true' if image stored top-to-bottom
+            flip      = FLIP_H;  // 'true' if image stored top-to-bottom
   int       bmpWidth,            // BMP width in pixels
             bmpHeight,           // BMP height in pixels
             bmpStartCol,         // First BMP column to process (crop/center)
@@ -422,7 +423,7 @@ boolean bmpProcess(
       rowSize = ((bmpWidth * 3) + 3) & ~3; // 32-bit line boundary
       b16     = (int)b;
 
-      if (bmpHeight < 0) {      // If bmpHeight is negative,
+      if (bmpHeight < 0) {      // If bmpHeight is negative,bmpHeight
         bmpHeight = -bmpHeight; // image is in top-down order.
         flip      = true;       // Rare, but happens.
       }
