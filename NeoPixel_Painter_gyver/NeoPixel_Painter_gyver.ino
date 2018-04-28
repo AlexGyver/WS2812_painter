@@ -22,14 +22,18 @@
 // ------------------------------ НАСТРОЙКИ ------------------------------
 #define N_LEDS       144    // количество светодиодов (максимум 170 !!!)
 #define CURRENT_MAX 3500    // максимальный ток (авто-ограничение по расчёту яркости)
+#define DEBUG 0             // отправка информации в порт, 1-вкл, 0-выкл
+// ПРИ ВЫКЛЮЧЕННОМ DEBUG СИСТЕМА РАБОТАЕТ ГОРАЗДО БЫСТРЕЕ!!
 // ------------------------------ НАСТРОЙКИ ------------------------------
 
 // ----------------------- ПОДКЛЮЧЕНИЕ -----------------------
 #define TRIGGER 2  // кнопка запуска анимации
 
-#define CLK_ENC 3  // ПИН ЭНКОДЕРА
-#define DT_ENC 4   // ПИН ЭНКОДЕРА
-#define SW_ENC 5   // ПИН ЭНКОДЕРА
+#define CLK_ENC 4  // ПИН CLK ЭНКОДЕРА
+#define DT_ENC 3   // ПИН DT ЭНКОДЕРА
+// CLK и DT можно менять местами, чтобы инвертировать направление
+
+#define SW_ENC 5   // ПИН SW ЭНКОДЕРА
 
 #define DIO 6      // ДИСПЛЕЙ
 #define CLK 7      // ДИСПЛЕЙ
@@ -82,7 +86,7 @@ void setup() {
     EEPROM.write(0, 1);       // запомнить, что первый запуск был
     EEPROM.writeByte(1, 50);      // ячейка 1 - яркость (по умолчанию)
     EEPROM.writeByte(3, 50);      // ячейка 3 - скорость (по умолчанию)
-    Serial.println("first");
+    if (DEBUG) Serial.println("first");
     norm_counter = 50;
     anim_speed = 50;
   } else {
@@ -116,7 +120,7 @@ void setup() {
   memset(sdBuf, 0, N_LEDS * 3);          // Clear LED buffer
   show();                                // Init LEDs to 'off' state
 
-  Serial.print(F("Initializing SD card..."));
+  if (DEBUG) Serial.print(F("Initializing SD card..."));
   if (!sd.begin(CARD_SELECT, SPI_FULL_SPEED)) {
     tm1637.displayByte(_S, _d, _e, _r);  // надпись Sder
     error(F("failed. Things to check:\n"
@@ -124,7 +128,7 @@ void setup() {
             "* Is your wiring correct?\n"
             "* did you edit CARD_SELECT to match the SD shield or module?"));
   }
-  Serial.println(F("OK"));
+  if (DEBUG) Serial.println(F("OK"));
 
 #if 0
   if (!volume.init(&card)) {
@@ -150,9 +154,9 @@ void setup() {
       }
     } while (found && (nFrames < 1000));
 
-    Serial.print(nFrames);
-    Serial.print(" frames\nbrightness = ");
-    Serial.println(minBrightness);
+    if (DEBUG) Serial.print(nFrames);
+    if (DEBUG) Serial.print(" frames\nbrightness = ");
+    if (DEBUG) Serial.println(minBrightness);
 
     tm1637.displayByte(0, _b);
     tm1637.displayByte(1, _r);
@@ -206,8 +210,8 @@ void setup() {
     if (n > maxLPS) maxLPS = n;
   }
   if (maxLPS > 400) maxLPS = 400; // NeoPixel PWM rate is ~400 Hz
-  Serial.print(F("Max lines/sec: "));
-  Serial.println(maxLPS);
+  if (DEBUG) Serial.print(F("Max lines/sec: "));
+  if (DEBUG) Serial.println(maxLPS);
 
   // Set up Timer1 for 64:1 prescale (250 KHz clock source),
   // fast PWM mode, no PWM out.
@@ -217,7 +221,7 @@ void setup() {
   // This means delay(), millis(), etc. won't work after this.
   TIMSK0 = 0;
 
-  Serial.println(F("Setup done"));
+  if (DEBUG) Serial.println(F("Setup done"));
 
   tm1637.displayByte(_r, _d, _y, _empty);
   delay(500);
@@ -227,7 +231,7 @@ void setup() {
 
 // Обработчик ошибки. Полностью вешает систему
 static void error(const __FlashStringHelper *ptr) {
-  Serial.println(ptr); // Show message
+  if (DEBUG) Serial.println(ptr); // Show message
   tm1637.displayByte(_F, _e, _r, _r);
   for (;;);            // and hang
 }
@@ -369,12 +373,12 @@ boolean bmpProcess(
   if (brightness)           b = 1 + *brightness; // Wraps around, fun with maths
   else if (NULL == outName) return false; // MUST pass brightness for power est.
 
-  Serial.print(F("Reading file '"));
-  Serial.print(inName);
-  Serial.print(F("'..."));
+  if (DEBUG) Serial.print(F("Reading file '"));
+  if (DEBUG) Serial.print(inName);
+  if (DEBUG) Serial.print(F("'..."));
   if (!inFile.open(inName, O_RDONLY)) {
     tm1637.displayByte(_F, _r, _E, _r);
-    Serial.println(F("error"));
+    if (DEBUG) Serial.println(F("error"));
     return false;
   }
 
@@ -389,15 +393,15 @@ boolean bmpProcess(
     bmpHeight      = *(uint32_t *)&sdBuf[22];
     // That's some nonportable, endian-dependent code right there.
 
-    Serial.print(bmpWidth);
+    if (DEBUG) Serial.print(bmpWidth);
     Serial.write('x');
-    Serial.print(bmpHeight);
-    Serial.println(F(" pixels"));
+    if (DEBUG) Serial.print(bmpHeight);
+    if (DEBUG) Serial.println(F(" pixels"));
 
     if (outName) { // Doing conversion?  Need outFile.
       // Delete existing outFile file (if any)
       (void)sd.remove(outName);
-      Serial.print(F("Creating contiguous file..."));
+      if (DEBUG) Serial.print(F("Creating contiguous file..."));
       // NeoPixel working file is always 512 bytes (one SD block) per row
       if (outFile.createContiguous(sd.vwd(), outName, 512L * bmpHeight)) {
         uint32_t lastBlock;
@@ -405,15 +409,15 @@ boolean bmpProcess(
         outFile.close();
         nBlocks = bmpHeight; // See note in setup() re: block calcs
         ok      = true;      // outFile is good; proceed
-        Serial.println(F("OK"));
+        if (DEBUG) Serial.println(F("OK"));
       } else {
-        Serial.println(F("error"));
+        if (DEBUG) Serial.println(F("error"));
         tm1637.displayByte(_F, _r, _E, _r);
       }
     } else ok = true; // outFile not needed; proceed
 
     if (ok) { // Valid BMP and contig file (if needed) are ready
-      Serial.print(F("Processing..."));
+      if (DEBUG) Serial.print(F("Processing..."));
 
       rowSize = ((bmpWidth * 3) + 3) & ~3; // 32-bit line boundary
       b16     = (int)b;
@@ -441,7 +445,7 @@ boolean bmpProcess(
                                                 (bmpHeight - 1 - row) : // Image is stored top-to-bottom
                                                 row)));                 // Image stored bottom-to-top
         if (!inFile.read(ledStartPtr, columns * 3)) { // Load row
-          Serial.println(F("Read error"));
+          if (DEBUG) Serial.println(F("Read error"));
           tm1637.displayByte(_F, _r, _E, _r);
         }
 
@@ -471,14 +475,14 @@ boolean bmpProcess(
 
         if (outName) {
           if (!sd.card()->writeBlock(firstBlock + row, (uint8_t *)sdBuf)) {
-            Serial.println(F("Write error"));
+            if (DEBUG) Serial.println(F("Write error"));
             tm1637.displayByte(_F, _r, _E, _r);
           }
         }
         if (sum > lineMax) lineMax = sum;
 
       } // Next row
-      Serial.println(F("OK"));
+      if (DEBUG) Serial.println(F("OK"));
 
       if (brightness) {
         lineMax = (lineMax * 20) / 255; // Est current @ ~20 mA/LED
@@ -488,13 +492,13 @@ boolean bmpProcess(
         } // Else no recommended change
       }
 
-      Serial.print(F("Processed in "));
-      Serial.print(millis() - startTime);
-      Serial.println(F(" ms"));
+      if (DEBUG) Serial.print(F("Processed in "));
+      if (DEBUG) Serial.print(millis() - startTime);
+      if (DEBUG) Serial.println(F(" ms"));
 
     } // end 'ok' check
   } else { // end BMP header check
-    Serial.println(F("BMP format not recognized."));
+    if (DEBUG) Serial.println(F("BMP format not recognized."));
     tm1637.displayByte(_F, _r, _E, _r);
   }
 
