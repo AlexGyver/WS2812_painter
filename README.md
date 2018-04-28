@@ -30,9 +30,9 @@
 <a id="chapter-2"></a>
 ## Схемы
 ### Оригинальная
-![SCHEME](https://github.com/AlexGyver/ColorMusic/blob/master/schemes/scheme1.jpg)
+![SCHEME](https://github.com/AlexGyver/WS2812_painter/blob/master/schemes/scheme1.jpg)
 ### Модификация
-![SCHEME](https://github.com/AlexGyver/ColorMusic/blob/master/schemes/scheme2.jpg)
+![SCHEME](https://github.com/AlexGyver/WS2812_painter/blob/master/schemes/scheme2.jpg)
 
 <a id="chapter-3"></a>
 ## Материалы и компоненты
