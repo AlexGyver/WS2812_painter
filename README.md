@@ -26,6 +26,7 @@
 - **NeoPixel_Painter_gyver** - модицифированная прошивка от меня. Добавлен дисплей и энкодер
 - **schemes** - схемы подключения
 - **progs** - программы (paint.net, SD format tool)
+- **BMPimages** - готовые картинки из видео
 
 <a id="chapter-2"></a>
 ## Схемы
