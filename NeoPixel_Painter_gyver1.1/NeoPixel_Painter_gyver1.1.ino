@@ -247,17 +247,16 @@ void encoderTick() {
   }
   DT_now = digitalRead(CLK_ENC);          // читаем текущее положение CLK
   if (DT_now != DT_last) {            // если предыдущее и текущее положение CLK разные, значит был поворот
-	if (ENC_TYPE) _new_step = !_new_step;
-	if (_new_step) {
-    {  
-		if (digitalRead(DT_ENC) != DT_now) {  // если состояние DT отличается от CLK, значит крутим по часовой стрелке
-		if (SWstate) norm_counter += NORM_STEP;
-		else hold_counter += HOLD_STEP;
-		} else {                          // если совпадают, значит против часовой
-		if (SWstate) norm_counter -= NORM_STEP;
-		else hold_counter -= HOLD_STEP;
-		}
-	}
+    if (ENC_TYPE) _new_step = !_new_step;
+    if (_new_step) {
+      if (digitalRead(DT_ENC) != DT_now) {  // если состояние DT отличается от CLK, значит крутим по часовой стрелке
+        if (SWstate) norm_counter += NORM_STEP;
+        else hold_counter += HOLD_STEP;
+      } else {                          // если совпадают, значит против часовой
+        if (SWstate) norm_counter -= NORM_STEP;
+        else hold_counter -= HOLD_STEP;
+      }
+    }
     turn_flag = true;                    // флаг что был поворот ручки энкодера
   }
   DT_last = DT_now;                   // обновить значение
