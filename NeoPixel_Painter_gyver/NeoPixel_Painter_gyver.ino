@@ -23,7 +23,8 @@
 #define N_LEDS       144    // количество светодиодов (максимум 170 !!!)
 #define FLIP_H 0            // зеркально отражать изображения по горизонтали
 #define CURRENT_MAX 3500    // максимальный ток (авто-ограничение по расчёту яркости)
-#define DEBUG 0             // отправка информации в порт, 1-вкл, 0-выкл
+#define DEBUG             // отправка информации в порт
+// ЧТОБЫ ОТКЛЮЧИТЬ ОТЛАДКУ ЗАКОМЕНТИРУЙТЕ СТРОЧКУ ВЫШЕ ПРИ ПОМОЩИ //
 // ПРИ ВЫКЛЮЧЕННОМ DEBUG СИСТЕМА РАБОТАЕТ ГОРАЗДО БЫСТРЕЕ!!
 // ------------------------------ НАСТРОЙКИ ------------------------------
 
@@ -44,7 +45,6 @@
 // SD card module: CLK (SCK) -> D13, MOSI -> D11, MISO -> D12, CS -> D10
 #define CARD_SELECT   10    // CS пин карты
 // ----------------------- ПОДКЛЮЧЕНИЕ -----------------------
-
 // ---- БИБЛИОТЕКИ ----
 #include <SdFat.h>
 #include <avr/pgmspace.h>
@@ -87,7 +87,9 @@ void setup() {
     EEPROM.write(0, 1);       // запомнить, что первый запуск был
     EEPROM.writeByte(1, 50);      // ячейка 1 - яркость (по умолчанию)
     EEPROM.writeByte(3, 50);      // ячейка 3 - скорость (по умолчанию)
-    if (DEBUG) Serial.println("first");
+    #ifdef DEBUG
+    Serial.println("first");
+    #endif
     norm_counter = 50;
     anim_speed = 50;
   } else {
@@ -120,8 +122,9 @@ void setup() {
   pinMask = digitalPinToBitMask(LED_PIN);
   memset(sdBuf, 0, N_LEDS * 3);          // Clear LED buffer
   show();                                // Init LEDs to 'off' state
-
-  if (DEBUG) Serial.print(F("Initializing SD card..."));
+#ifdef
+  Serial.print(F("Initializing SD card..."));
+#endif
   if (!sd.begin(CARD_SELECT, SPI_FULL_SPEED)) {
     tm1637.displayByte(_S, _d, _e, _r);  // надпись Sder
     error(F("failed. Things to check:\n"
@@ -129,16 +132,19 @@ void setup() {
             "* Is your wiring correct?\n"
             "* did you edit CARD_SELECT to match the SD shield or module?"));
   }
-  if (DEBUG) Serial.println(F("OK"));
+#ifdef
+  Serial.println(F("OK"));
+#endif
 
-#if 0
+//#if 0
+/*
   if (!volume.init(&card)) {
     tm1637.displayByte(_S, _d, _e, _r);  // надпись Sder
     error(F("Could not find FAT16/FAT32 partition.\n"
             "Make sure the card is formatted."));
   }
   root.openRoot(&volume);
-#endif
+*///#endif
   if (startupTrigger == LOW) { // если при запуске кнопка НАЖАТА
     while (digitalRead(SW_ENC) == LOW); // ждём отпускания кнопки
     tm1637.displayByte(_P, _r, _e, _P);
@@ -154,10 +160,11 @@ void setup() {
         if (b < minBrightness) minBrightness = b;
       }
     } while (found && (nFrames < 1000));
-
-    if (DEBUG) Serial.print(nFrames);
-    if (DEBUG) Serial.print(" frames\nbrightness = ");
-    if (DEBUG) Serial.println(minBrightness);
+#ifdef DEBUG
+    Serial.print(nFrames);
+    Serial.print(" frames\nbrightness = ");
+    Serial.println(minBrightness);
+#endif
 
     tm1637.displayByte(0, _b);
     tm1637.displayByte(1, _r);
@@ -211,8 +218,10 @@ void setup() {
     if (n > maxLPS) maxLPS = n;
   }
   if (maxLPS > 400) maxLPS = 400; // NeoPixel PWM rate is ~400 Hz
-  if (DEBUG) Serial.print(F("Max lines/sec: "));
-  if (DEBUG) Serial.println(maxLPS);
+#ifdef DEBUG
+  Serial.print(F("Max lines/sec: "));
+  Serial.println(maxLPS);
+#endif
 
   // Set up Timer1 for 64:1 prescale (250 KHz clock source),
   // fast PWM mode, no PWM out.
@@ -222,7 +231,7 @@ void setup() {
   // This means delay(), millis(), etc. won't work after this.
   TIMSK0 = 0;
 
-  if (DEBUG) Serial.println(F("Setup done"));
+  Serial.println(F("Setup done"));
 
   tm1637.displayByte(_r, _d, _y, _empty);
   delay(500);
@@ -232,7 +241,9 @@ void setup() {
 
 // Обработчик ошибки. Полностью вешает систему
 static void error(const __FlashStringHelper *ptr) {
-  if (DEBUG) Serial.println(ptr); // Show message
+#ifdef DEBUG
+  Serial.println(ptr); // Show message
+#endif
   tm1637.displayByte(_F, _e, _r, _r);
   for (;;);            // and hang
 }
@@ -374,12 +385,16 @@ boolean bmpProcess(
   if (brightness)           b = 1 + *brightness; // Wraps around, fun with maths
   else if (NULL == outName) return false; // MUST pass brightness for power est.
 
-  if (DEBUG) Serial.print(F("Reading file '"));
-  if (DEBUG) Serial.print(inName);
-  if (DEBUG) Serial.print(F("'..."));
+  #ifdef DEBUG
+  Serial.print(F("Reading file '"));
+  Serial.print(inName);
+  Serial.print(F("'..."));
+  #endif
   if (!inFile.open(inName, O_RDONLY)) {
     tm1637.displayByte(_F, _r, _E, _r);
-    if (DEBUG) Serial.println(F("error"));
+    #ifdef DEBUG
+    Serial.println(F("error"));
+    #endif
     return false;
   }
 
@@ -393,16 +408,18 @@ boolean bmpProcess(
     bmpWidth       = *(uint32_t *)&sdBuf[18]; // Image dimensions
     bmpHeight      = *(uint32_t *)&sdBuf[22];
     // That's some nonportable, endian-dependent code right there.
-
-    if (DEBUG) Serial.print(bmpWidth);
+#ifdef DEBUG
+    Serial.print(bmpWidth);
     Serial.write('x');
-    if (DEBUG) Serial.print(bmpHeight);
-    if (DEBUG) Serial.println(F(" pixels"));
-
+    Serial.print(bmpHeight);
+    Serial.println(F(" pixels"));
+#endif
     if (outName) { // Doing conversion?  Need outFile.
       // Delete existing outFile file (if any)
       (void)sd.remove(outName);
-      if (DEBUG) Serial.print(F("Creating contiguous file..."));
+      #ifdef DEBUG
+      Serial.print(F("Creating contiguous file..."));
+      #endif
       // NeoPixel working file is always 512 bytes (one SD block) per row
       if (outFile.createContiguous(sd.vwd(), outName, 512L * bmpHeight)) {
         uint32_t lastBlock;
@@ -410,16 +427,21 @@ boolean bmpProcess(
         outFile.close();
         nBlocks = bmpHeight; // See note in setup() re: block calcs
         ok      = true;      // outFile is good; proceed
-        if (DEBUG) Serial.println(F("OK"));
+	#ifdef DEBUG
+        Serial.println(F("OK"));
+	#endif
       } else {
-        if (DEBUG) Serial.println(F("error"));
+	#ifdef DEBUG
+        Serial.println(F("error"));
+	#endif
         tm1637.displayByte(_F, _r, _E, _r);
       }
     } else ok = true; // outFile not needed; proceed
 
     if (ok) { // Valid BMP and contig file (if needed) are ready
-      if (DEBUG) Serial.print(F("Processing..."));
-
+      #ifdef DEBUG
+      Serial.print(F("Processing..."));
+      #endif
       rowSize = ((bmpWidth * 3) + 3) & ~3; // 32-bit line boundary
       b16     = (int)b;
 
@@ -446,7 +468,9 @@ boolean bmpProcess(
                                                 (bmpHeight - 1 - row) : // Image is stored top-to-bottom
                                                 row)));                 // Image stored bottom-to-top
         if (!inFile.read(ledStartPtr, columns * 3)) { // Load row
-          if (DEBUG) Serial.println(F("Read error"));
+          #ifdef DEBUG
+	  Serial.println(F("Read error"));
+	  #endif
           tm1637.displayByte(_F, _r, _E, _r);
         }
 
@@ -476,15 +500,18 @@ boolean bmpProcess(
 
         if (outName) {
           if (!sd.card()->writeBlock(firstBlock + row, (uint8_t *)sdBuf)) {
-            if (DEBUG) Serial.println(F("Write error"));
+            #ifdef DEBUG
+	    Serial.println(F("Write error"));
+	    #endif
             tm1637.displayByte(_F, _r, _E, _r);
           }
         }
         if (sum > lineMax) lineMax = sum;
 
       } // Next row
-      if (DEBUG) Serial.println(F("OK"));
-
+      #ifdef DEBUG
+      Serial.println(F("OK"));
+      #endif
       if (brightness) {
         lineMax = (lineMax * 20) / 255; // Est current @ ~20 mA/LED
         if (lineMax > CURRENT_MAX) {
@@ -492,14 +519,16 @@ boolean bmpProcess(
           *brightness = (*brightness * (uint32_t)CURRENT_MAX) / lineMax;
         } // Else no recommended change
       }
-
-      if (DEBUG) Serial.print(F("Processed in "));
-      if (DEBUG) Serial.print(millis() - startTime);
-      if (DEBUG) Serial.println(F(" ms"));
-
+#ifdef DEBUG
+      Serial.print(F("Processed in "));
+      Serial.print(millis() - startTime);
+      Serial.println(F(" ms"));
+#endif
     } // end 'ok' check
   } else { // end BMP header check
-    if (DEBUG) Serial.println(F("BMP format not recognized."));
+    #ifdef DEBUG
+    Serial.println(F("BMP format not recognized."));
+    #endif
     tm1637.displayByte(_F, _r, _E, _r);
   }
 
